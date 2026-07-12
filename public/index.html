@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FileXchange</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="/vendor/qrcode.js"></script>
+<style>
+  *{box-sizing:border-box}
+  :root{
+    --page:#e9ecec; --panel:#ffffff; --header:#0F766E; --text:#14201e; --sub:#6b7b78;
+    --border:rgba(10,20,18,.09); --field:#eef2f1; --accent:#0F766E; --accent-text:#ffffff;
+    --dot:#7dd3c8; --shadow:rgba(15,60,55,.32); --drop-bg:rgba(15,118,110,.06);
+    --pill-never-c:#0f766e; --pill-never-bg:#ccfbf1;
+    --pill-expired-c:#dc2626; --pill-expired-bg:#fee2e2;
+    --pill-soon-c:#b45309; --pill-soon-bg:#fef3c7;
+    --pill-normal-c:#5c716d; --pill-normal-bg:#f1f5f4;
+  }
+  [data-theme="dark"]{
+    --page:#0a0d0c; --panel:#121716; --header:#0c1413; --text:#e7efed; --sub:#869692;
+    --border:rgba(255,255,255,.08); --field:#0e1413; --accent:#14b8a6; --accent-text:#04110f;
+    --dot:#7dd3c8; --shadow:rgba(0,0,0,.6); --drop-bg:rgba(255,255,255,.04);
+    --pill-never-c:#5eead4; --pill-never-bg:rgba(94,234,212,.12);
+    --pill-expired-c:#f87171; --pill-expired-bg:rgba(248,113,113,.14);
+    --pill-soon-c:#fbbf24; --pill-soon-bg:rgba(251,191,36,.14);
+    --pill-normal-c:#93b8b0; --pill-normal-bg:rgba(255,255,255,.05);
+  }
+  body{margin:0;font-family:'Inter Tight',system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+       min-height:100vh;background:var(--page);color:var(--text);transition:background .3s ease,color .3s ease}
+  @keyframes fxpop{0%{opacity:0;transform:translateY(8px) scale(.98)}100%{opacity:1;transform:none}}
+  @keyframes fxfade{from{opacity:0}to{opacity:1}}
+  .fx-anim{animation:fxpop .34s cubic-bezier(.22,1,.36,1) both}
+  .fx-field:focus{outline:none}
+  ::selection{background:rgba(15,118,110,.22)}
+  button{font-family:'Inter Tight',system-ui,sans-serif}
+
+  header{background:var(--header);color:#fff;padding:22px 24px 30px;transition:background .3s ease}
+  .fx-wrap{max-width:720px;margin:0 auto}
+  .fx-hdr-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .fx-brand{display:flex;align-items:center;gap:11px}
+  .fx-logo{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;font-family:'Space Grotesk',sans-serif}
+  .fx-brand span{font-weight:700;font-size:16px;letter-spacing:-.01em;font-family:'Space Grotesk',sans-serif}
+  .fx-hdr-actions{display:flex;align-items:center;gap:9px}
+  .fx-host-btn{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.14);border:none;color:#fff;padding:7px 11px;border-radius:20px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:500}
+  .fx-dot{width:6px;height:6px;border-radius:50%;background:var(--dot);box-shadow:0 0 7px var(--dot)}
+  .fx-theme-btn{width:34px;height:34px;border-radius:20px;background:rgba(255,255,255,.14);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  header h1{margin:22px 0 0;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:29px;line-height:1.05;letter-spacing:-.03em;max-width:340px}
+  header p{margin:8px 0 0;font-size:13.5px;color:rgba(255,255,255,.7);max-width:380px}
+
+  main{max-width:720px;margin:0 auto;padding:0 24px 60px}
+  .fx-dropcard{margin-top:-20px;position:relative;background:var(--panel);border-radius:18px;box-shadow:0 14px 34px -16px var(--shadow);border:1px solid var(--border);padding:6px}
+  .fx-dropzone{border:1.6px dashed var(--border);background:transparent;border-radius:14px;padding:26px 20px;text-align:center;transition:background .18s ease,border-color .18s ease}
+  .fx-dropzone.over{border-color:var(--accent);background:var(--drop-bg)}
+  .fx-drop-icon{width:46px;height:46px;margin:0 auto 12px;border-radius:13px;background:var(--accent);display:flex;align-items:center;justify-content:center;transition:transform .18s ease}
+  .fx-dropzone.over .fx-drop-icon{transform:scale(1.08)}
+  .fx-drop-title{font-weight:600;font-size:15px;color:var(--text)}
+  .fx-drop-sub{font-size:12.5px;color:var(--sub);margin-top:3px}
+  .fx-browse{color:var(--accent);font-weight:600;cursor:pointer}
+  .fx-expiry-row{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:18px;flex-wrap:wrap}
+  .fx-expiry-label{font-size:12px;color:var(--sub)}
+  .fx-expiry-opts{display:flex;gap:5px;background:var(--field);padding:4px;border-radius:11px}
+  .fx-expiry-opts button{border:none;cursor:pointer;font-size:12px;font-weight:600;padding:6px 11px;border-radius:8px;background:transparent;color:var(--sub);transition:all .15s ease}
+  .fx-expiry-opts button.sel{background:var(--accent);color:var(--accent-text)}
+
+  .fx-controls{display:flex;align-items:center;gap:11px;margin:22px 0 14px}
+  .fx-search{flex:1;display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 13px}
+  .fx-search input{border:none;background:transparent;flex:1;font-size:13.5px;color:var(--text);font-family:'Inter Tight',sans-serif}
+  .fx-count{font-size:12.5px;color:var(--sub);white-space:nowrap;font-weight:500}
+
+  .fx-list{display:flex;flex-direction:column;gap:11px}
+  .fx-row{display:flex;align-items:center;gap:13px;padding:14px;background:var(--panel);border:1px solid var(--border);border-radius:15px;transition:opacity .3s ease}
+  .fx-badge{width:44px;height:44px;flex:none;border-radius:12px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10.5px;font-family:'JetBrains Mono',monospace}
+  .fx-info{flex:1;min-width:0}
+  .fx-name{font-weight:600;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fx-meta{font-size:12px;color:var(--sub);margin-top:2px}
+  .fx-pill{font-weight:600;font-size:11px;padding:5px 10px;border-radius:20px;white-space:nowrap}
+  .fx-pill.never{color:var(--pill-never-c);background:var(--pill-never-bg)}
+  .fx-pill.expired{color:var(--pill-expired-c);background:var(--pill-expired-bg)}
+  .fx-pill.soon{color:var(--pill-soon-c);background:var(--pill-soon-bg)}
+  .fx-pill.normal{color:var(--pill-normal-c);background:var(--pill-normal-bg)}
+  .fx-actions{display:flex;gap:6px}
+  .fx-icon-btn{width:34px;height:34px;flex:none;border:1px solid var(--border);background:transparent;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s ease}
+  .fx-icon-btn.copied{background:var(--accent);border-color:var(--accent)}
+  .fx-dl{width:34px;height:34px;flex:none;background:var(--accent);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none}
+
+  .fx-empty{text-align:center;padding:44px 20px;color:var(--sub)}
+  .fx-empty-title{font-size:14px;font-weight:600;color:var(--text)}
+  .fx-empty-sub{font-size:12.5px;margin-top:4px}
+  .fx-foot{text-align:center;font-size:11.5px;color:var(--sub);margin-top:34px}
+  .fx-foot code{font-family:'JetBrains Mono',monospace}
+
+  .fx-overlay{position:fixed;inset:0;background:rgba(8,12,11,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px;z-index:50;animation:fxfade .2s ease both}
+  .fx-modal{background:var(--panel);border-radius:22px;padding:30px;max-width:340px;width:100%;text-align:center;box-shadow:0 30px 70px -20px rgba(0,0,0,.5);border:1px solid var(--border)}
+  .fx-modal-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;color:var(--text)}
+  .fx-modal-sub{font-size:12.5px;color:var(--sub);margin-top:5px}
+  .fx-qr{background:#fff;border-radius:16px;padding:16px;margin:20px auto 0;width:196px;height:196px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+  .fx-host-row{display:flex;align-items:center;gap:8px;margin-top:20px;background:var(--field);border-radius:12px;padding:11px 13px}
+  .fx-host-url{flex:1;text-align:left;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fx-copy-host{border:none;background:var(--accent);color:var(--accent-text);font-weight:600;font-size:12px;padding:7px 12px;border-radius:9px;cursor:pointer;white-space:nowrap}
+  .fx-close{margin-top:16px;border:none;background:transparent;color:var(--sub);font-size:12.5px;font-weight:600;cursor:pointer}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="fx-wrap">
+    <div class="fx-hdr-row">
+      <div class="fx-brand">
+        <div class="fx-logo">F</div>
+        <span>FileXchange</span>
+      </div>
+      <div class="fx-hdr-actions">
+        <button class="fx-host-btn" id="hostBtn" title="Show connection info">
+          <span class="fx-dot"></span>
+          <span id="hostShort">…</span>
+        </button>
+        <button class="fx-theme-btn" id="themeBtn" title="Toggle theme"></button>
+      </div>
+    </div>
+    <h1>Share anything on this network.</h1>
+    <p>Drop a file to make it available to everyone on your LAN. Set an expiry and it cleans up automatically.</p>
+  </div>
+</header>
+
+<main>
+  <div class="fx-dropcard">
+    <div class="fx-dropzone" id="dropzone">
+      <div class="fx-drop-icon">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 20h16"/></svg>
+      </div>
+      <div class="fx-drop-title" id="dropTitle">Drop files to share</div>
+      <div class="fx-drop-sub">or <span class="fx-browse" id="browseBtn">browse your device</span></div>
+      <div class="fx-expiry-row">
+        <span class="fx-expiry-label">Auto-expire:</span>
+        <div class="fx-expiry-opts" id="expiryOpts"></div>
+      </div>
+    </div>
+    <input type="file" id="fileInput" multiple style="display:none">
+  </div>
+
+  <div class="fx-controls">
+    <div class="fx-search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+      <input class="fx-field" id="searchInput" placeholder="Search files">
+    </div>
+    <span class="fx-count" id="countLabel"></span>
+  </div>
+
+  <div class="fx-list" id="fileList"></div>
+
+  <div class="fx-empty hidden" id="emptyState">
+    <div class="fx-empty-title" id="emptyTitle">No files yet</div>
+    <div class="fx-empty-sub" id="emptySub">Drop your first file above to get started.</div>
+  </div>
+
+  <p class="fx-foot">Files are served from this device over your local network · <code id="hostFoot">…</code></p>
+</main>
+
+<div class="fx-overlay hidden" id="qrOverlay">
+  <div class="fx-modal fx-anim" id="qrModal">
+    <div class="fx-modal-title">Join from another device</div>
+    <div class="fx-modal-sub">On the same Wi-Fi, scan this or open the address below.</div>
+    <div class="fx-qr" id="qrBox"></div>
+    <div class="fx-host-row">
+      <span class="fx-host-url" id="hostUrl">…</span>
+      <button class="fx-copy-host" id="copyHostBtn">Copy</button>
+    </div>
+    <button class="fx-close" id="closeQrBtn">Close</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var EXPIRY_OPTS = [
+    { label: 'Never', ms: null },
+    { label: '1h', ms: 3600e3 },
+    { label: '1d', ms: 864e5 },
+    { label: '7d', ms: 7 * 864e5 },
+    { label: '30d', ms: 30 * 864e5 },
+  ];
+
+  var state = {
+    files: [],
+    host: location.host,
+    query: '',
+    dark: false,
+    expiryIdx: 0,
+    copiedId: null,
+    now: Date.now(),
+  };
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------- theme ----------
+  var urlParams = new URLSearchParams(location.search);
+  try { state.dark = localStorage.getItem('fx-theme') === 'dark'; } catch (e) {}
+  if (urlParams.get('theme')) state.dark = urlParams.get('theme') === 'dark';
+  function applyTheme() {
+    document.documentElement.setAttribute('data-theme', state.dark ? 'dark' : 'light');
+    $('themeBtn').innerHTML = state.dark
+      ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/></svg>'
+      : '<svg width="17" height="17" viewBox="0 0 24 24" fill="#fff" stroke="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>';
+  }
+  $('themeBtn').addEventListener('click', function () {
+    state.dark = !state.dark;
+    try { localStorage.setItem('fx-theme', state.dark ? 'dark' : 'light'); } catch (e) {}
+    applyTheme();
+  });
+
+  // ---------- formatting ----------
+  function fmtSize(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(0) + ' KB';
+    if (b < 1073741824) return (b / 1048576).toFixed(1) + ' MB';
+    return (b / 1073741824).toFixed(2) + ' GB';
+  }
+  function fmtDate(ts) {
+    return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  function fmtRemain(ms) {
+    var m = ms / 60000;
+    if (m < 60) return Math.max(1, Math.ceil(m)) + 'm left';
+    if (m < 1440) return Math.floor(m / 60) + 'h left';
+    return Math.floor(m / 1440) + 'd left';
+  }
+  var BADGES = {
+    pdf: ['#dc2626', 'PDF'], jpg: ['#16a34a', 'JPG'], jpeg: ['#16a34a', 'JPG'], png: ['#16a34a', 'PNG'], gif: ['#16a34a', 'GIF'], webp: ['#16a34a', 'IMG'], heic: ['#16a34a', 'IMG'],
+    zip: ['#d97706', 'ZIP'], rar: ['#d97706', 'RAR'], '7z': ['#d97706', '7Z'], tar: ['#d97706', 'TAR'], gz: ['#d97706', 'GZ'],
+    mp4: ['#7c3aed', 'MP4'], mov: ['#7c3aed', 'MOV'], mkv: ['#7c3aed', 'MKV'], webm: ['#7c3aed', 'WEBM'],
+    mp3: ['#db2777', 'MP3'], wav: ['#db2777', 'WAV'], flac: ['#db2777', 'FLAC'],
+    doc: ['#2563eb', 'DOC'], docx: ['#2563eb', 'DOC'], txt: ['#2563eb', 'TXT'], md: ['#2563eb', 'MD'], rtf: ['#2563eb', 'RTF'],
+    xls: ['#059669', 'XLS'], xlsx: ['#059669', 'XLS'], csv: ['#059669', 'CSV'],
+    ppt: ['#ea580c', 'PPT'], pptx: ['#ea580c', 'PPT'],
+    js: ['#0891b2', 'JS'], ts: ['#0891b2', 'TS'], json: ['#0891b2', 'JSON'], html: ['#0891b2', 'HTML'], css: ['#0891b2', 'CSS'], py: ['#0891b2', 'PY'],
+  };
+  function badgeFor(name) {
+    var ext = (name.split('.').pop() || '').toLowerCase();
+    return BADGES[ext] || ['#64748b', ext ? ext.slice(0, 4).toUpperCase() : 'FILE'];
+  }
+  function pillFor(f, now) {
+    if (f.expiresAt == null) return { text: 'No expiry', cls: 'never' };
+    var rem = f.expiresAt - now;
+    if (rem <= 0) return { text: 'Expired', cls: 'expired' };
+    return { text: fmtRemain(rem), cls: rem < 864e5 ? 'soon' : 'normal' };
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).catch(function () { legacyCopy(text); });
+    }
+    legacyCopy(text);
+    return Promise.resolve();
+  }
+  function legacyCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  function fileUrl(f) { return 'http://' + state.host + '/f/' + f.id; }
+
+  // ---------- expiry selector ----------
+  function renderExpiry() {
+    var box = $('expiryOpts');
+    box.innerHTML = '';
+    EXPIRY_OPTS.forEach(function (o, i) {
+      var b = document.createElement('button');
+      b.textContent = o.label;
+      if (i === state.expiryIdx) b.className = 'sel';
+      b.addEventListener('click', function () { state.expiryIdx = i; renderExpiry(); });
+      box.appendChild(b);
+    });
+  }
+
+  // ---------- file list ----------
+  var seenIds = {};
+  function renderList() {
+    var all = state.files;
+    var q = state.query.trim().toLowerCase();
+    var list = q ? all.filter(function (f) { return f.name.toLowerCase().indexOf(q) !== -1; }) : all;
+    var now = state.now;
+
+    $('countLabel').textContent = q
+      ? list.length + ' of ' + all.length
+      : all.length + (all.length === 1 ? ' file' : ' files');
+
+    var listEl = $('fileList');
+    listEl.innerHTML = '';
+    list.forEach(function (f) {
+      var badge = badgeFor(f.name);
+      var pill = pillFor(f, now);
+      var expired = f.expiresAt != null && f.expiresAt - now <= 0;
+      var copied = state.copiedId === f.id;
+
+      var row = document.createElement('div');
+      row.className = 'fx-row' + (seenIds[f.id] ? '' : ' fx-anim');
+      seenIds[f.id] = true;
+      row.style.opacity = expired ? '0.5' : '1';
+
+      var badgeEl = document.createElement('div');
+      badgeEl.className = 'fx-badge';
+      badgeEl.style.background = badge[0];
+      badgeEl.textContent = badge[1];
+
+      var info = document.createElement('div');
+      info.className = 'fx-info';
+      var name = document.createElement('div');
+      name.className = 'fx-name';
+      name.textContent = f.name;
+      var meta = document.createElement('div');
+      meta.className = 'fx-meta';
+      meta.textContent = fmtSize(f.size) + ' · ' + fmtDate(f.uploadedAt);
+      info.appendChild(name); info.appendChild(meta);
+
+      var pillEl = document.createElement('div');
+      pillEl.className = 'fx-pill ' + pill.cls;
+      pillEl.textContent = pill.text;
+
+      var actions = document.createElement('div');
+      actions.className = 'fx-actions';
+
+      var copyBtn = document.createElement('button');
+      copyBtn.className = 'fx-icon-btn' + (copied ? ' copied' : '');
+      copyBtn.title = 'Copy download link';
+      copyBtn.innerHTML = copied
+        ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-11"/></svg>'
+        : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+      copyBtn.addEventListener('click', function () {
+        copyText(fileUrl(f));
+        state.copiedId = f.id;
+        renderList();
+        clearTimeout(copyBtn._t);
+        setTimeout(function () { if (state.copiedId === f.id) { state.copiedId = null; renderList(); } }, 1600);
+      });
+
+      var dl = document.createElement('a');
+      dl.className = 'fx-dl';
+      dl.href = '/f/' + f.id;
+      dl.setAttribute('download', f.name);
+      dl.title = 'Download';
+      dl.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"/><path d="m6 12 6 6 6-6"/><path d="M4 20h16"/></svg>';
+
+      var rm = document.createElement('button');
+      rm.className = 'fx-icon-btn';
+      rm.title = 'Remove';
+      rm.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+      rm.addEventListener('click', function () {
+        fetch('/api/files/' + f.id, { method: 'DELETE' }).then(refresh);
+        state.files = state.files.filter(function (x) { return x.id !== f.id; });
+        renderList();
+      });
+
+      actions.appendChild(copyBtn); actions.appendChild(dl); actions.appendChild(rm);
+      row.appendChild(badgeEl); row.appendChild(info); row.appendChild(pillEl); row.appendChild(actions);
+      listEl.appendChild(row);
+    });
+
+    var empty = $('emptyState');
+    if (list.length === 0) {
+      empty.classList.remove('hidden');
+      $('emptyTitle').textContent = q ? 'No matches' : 'No files yet';
+      $('emptySub').textContent = q ? 'Try a different search.' : 'Drop your first file above to get started.';
+    } else {
+      empty.classList.add('hidden');
+    }
+  }
+
+  // ---------- upload ----------
+  function addFiles(fileList) {
+    var arr = Array.prototype.slice.call(fileList || []);
+    if (!arr.length) return;
+    var opt = EXPIRY_OPTS[state.expiryIdx];
+    var pending = arr.length;
+    $('dropTitle').textContent = 'Uploading…';
+    arr.forEach(function (file) {
+      var params = '?name=' + encodeURIComponent(file.name) + '&expiresIn=' + (opt.ms ? opt.ms : 'never');
+      fetch('/api/upload' + params, { method: 'POST', body: file })
+        .catch(function () {})
+        .then(function () {
+          pending -= 1;
+          if (pending === 0) {
+            $('dropTitle').textContent = 'Drop files to share';
+            refresh();
+          }
+        });
+    });
+  }
+
+  var dz = $('dropzone');
+  dz.addEventListener('dragover', function (e) { e.preventDefault(); dz.classList.add('over'); $('dropTitle').textContent = 'Release to upload'; });
+  dz.addEventListener('dragleave', function (e) { e.preventDefault(); dz.classList.remove('over'); $('dropTitle').textContent = 'Drop files to share'; });
+  dz.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dz.classList.remove('over');
+    $('dropTitle').textContent = 'Drop files to share';
+    addFiles(e.dataTransfer.files);
+  });
+  $('browseBtn').addEventListener('click', function () { $('fileInput').click(); });
+  $('fileInput').addEventListener('change', function (e) { addFiles(e.target.files); e.target.value = ''; });
+
+  // ---------- search ----------
+  $('searchInput').addEventListener('input', function (e) { state.query = e.target.value; renderList(); });
+
+  // ---------- QR overlay ----------
+  function renderQR() {
+    var box = $('qrBox');
+    box.innerHTML = '';
+    var url = 'http://' + state.host;
+    try {
+      var qr = window.qrcode(0, 'M');
+      qr.addData(url);
+      qr.make();
+      var n = qr.getModuleCount();
+      var svgNS = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + n + ' ' + n);
+      svg.setAttribute('width', '100%');
+      svg.setAttribute('height', '100%');
+      svg.setAttribute('shape-rendering', 'crispEdges');
+      for (var y = 0; y < n; y++) {
+        for (var x = 0; x < n; x++) {
+          if (!qr.isDark(y, x)) continue;
+          var r = document.createElementNS(svgNS, 'rect');
+          r.setAttribute('x', x); r.setAttribute('y', y);
+          r.setAttribute('width', 1.02); r.setAttribute('height', 1.02);
+          r.setAttribute('rx', 0.18);
+          r.setAttribute('fill', '#0b1512');
+          svg.appendChild(r);
+        }
+      }
+      box.appendChild(svg);
+    } catch (e) {
+      var span = document.createElement('span');
+      span.style.cssText = 'font-family:JetBrains Mono,monospace;font-size:12px;color:#14201e;word-break:break-all';
+      span.textContent = url;
+      box.appendChild(span);
+    }
+  }
+  function openQR() {
+    renderQR();
+    $('hostUrl').textContent = 'http://' + state.host;
+    $('qrOverlay').classList.remove('hidden');
+  }
+  $('hostBtn').addEventListener('click', openQR);
+  $('qrOverlay').addEventListener('click', function () { $('qrOverlay').classList.add('hidden'); });
+  $('qrModal').addEventListener('click', function (e) { e.stopPropagation(); });
+  $('closeQrBtn').addEventListener('click', function () { $('qrOverlay').classList.add('hidden'); });
+  $('copyHostBtn').addEventListener('click', function () {
+    copyText('http://' + state.host);
+    var btn = $('copyHostBtn');
+    btn.textContent = 'Copied!';
+    clearTimeout(btn._t);
+    btn._t = setTimeout(function () { btn.textContent = 'Copy'; }, 1600);
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('qrOverlay').classList.add('hidden'); });
+
+  // ---------- state sync ----------
+  function refresh() {
+    return fetch('/api/state')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        state.files = data.files;
+        state.host = data.host;
+        state.now = Date.now();
+        $('hostShort').textContent = data.host;
+        $('hostFoot').textContent = data.host;
+        renderList();
+      })
+      .catch(function () {});
+  }
+
+  applyTheme();
+  renderExpiry();
+  renderList();
+  refresh().then(function () { if (urlParams.has('join')) openQR(); });
+  setInterval(function () { state.now = Date.now(); renderList(); }, 1000);
+  setInterval(refresh, 4000);
+})();
+</script>
+</body>
+</html>
