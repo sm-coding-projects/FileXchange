@@ -1,12 +1,13 @@
 # FileXchange
 
-Share files with everyone on your local network. Drop a file, pick an auto-expiry, and anyone on the same Wi-Fi can download it from their browser — no accounts, no cloud, no npm dependencies.
+Share files with everyone on your local network. Drop a file, pick an auto-expiry, and anyone on the same Wi-Fi can grab it — from their **browser** or a **one-line `curl` command** — with no accounts, no cloud, and no npm dependencies.
 
 ![FileXchange — light theme](docs/screenshots/light.png)
 
 ## Features
 
 - **Drag-and-drop or browse** to upload, multiple files at once
+- **Download in the browser** or **copy a ready-to-run `curl` command** shown under every file — paste it into any terminal on the LAN
 - **Auto-expire**: Never / 1h / 1d / 7d / 30d — expired files are deleted from disk automatically
 - **Search**, file-type badges, and live expiry countdown pills
 - **Copy a shareable download link** for any file
@@ -16,6 +17,22 @@ Share files with everyone on your local network. Drop a file, pick an auto-expir
 | Dark theme | Join from another device |
 |---|---|
 | ![Dark theme](docs/screenshots/dark.png) | ![QR join overlay](docs/screenshots/join-qr.png) |
+
+## Download from the terminal
+
+Every file shows a **`curl` command** right underneath it. Click to copy, paste it into any terminal on the same network, and the file downloads under its original name — no browser required.
+
+![Click to copy a per-file curl command](docs/screenshots/curl.png)
+
+```sh
+curl -OJ "http://192.168.1.42:8080/f/8ffc56b3e21fbb0e"
+```
+
+- **`-O`** writes the response to a local file; **`-J`** uses the name the server sends via `Content-Disposition`, so the download keeps its real filename instead of the random share ID.
+- The host in the command matches whatever address you opened FileXchange from (shown in the app header and printed on startup), so a copied command works as-is from any other device on the LAN.
+- Works anywhere `curl` does — macOS, Linux, WSL, Git Bash, and Windows 10+ (which ships `curl`). On Windows **PowerShell**, run it as `curl.exe -OJ "..."`, because plain `curl` there is an alias for a different command.
+
+Perfect for headless servers, Raspberry Pis, CI boxes, or any time it's quicker to paste a line than open a browser. It's the same `/f/<id>` endpoint the browser download and copy-link buttons use — `curl -OJ` just adds the auto-naming.
 
 ## Quick start
 
@@ -135,7 +152,7 @@ sudo firewall-cmd --reload
 
 ### 5. Use it
 
-From any device on the LAN, open `http://<server-ip>:8080` (the server prints its detected address on startup, and the host pill in the app header shows it too).
+From any device on the LAN, open `http://<server-ip>:8080` (the server prints its detected address on startup, and the host pill in the app header shows it too). Or copy a file's `curl` command and run it from a terminal.
 
 ## Configuration & data
 
@@ -151,12 +168,12 @@ To back up shared files, copy `uploads/` together with `files.json`.
 
 ## Security notes
 
-FileXchange is designed for **trusted local networks**. There is no authentication: anyone who can reach the port can upload, download, and delete files. Keep it behind your LAN/firewall and don't port-forward it to the internet. Download links use unguessable random IDs, and the server blocks path traversal, but that is not a substitute for network-level isolation.
+FileXchange is designed for **trusted local networks**. There is no authentication: anyone who can reach the port can upload, download, and delete files. Keep it behind your LAN/firewall and don't port-forward it to the internet. Download links (and the `curl` commands, which hit the same `/f/<id>` endpoint) use unguessable random IDs, and the server blocks path traversal, but that is not a substitute for network-level isolation.
 
 ## Tech
 
 - Zero-dependency Node.js server (`server.js`) — static hosting, streaming uploads/downloads, expiry sweep
-- Vanilla HTML/CSS/JS frontend (`public/index.html`)
+- Vanilla HTML/CSS/JS frontend (`public/index.html`) — file list, copy-link and copy-`curl` actions rendered per file
 - QR rendering by a vendored copy of [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT) in `public/vendor/`
 
 URL parameters: `?theme=dark|light` forces a theme, `?join=1` opens the QR overlay on load.

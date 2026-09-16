@@ -71,7 +71,8 @@
   .fx-count{font-size:12.5px;color:var(--sub);white-space:nowrap;font-weight:500}
 
   .fx-list{display:flex;flex-direction:column;gap:11px}
-  .fx-row{display:flex;align-items:center;gap:13px;padding:14px;background:var(--panel);border:1px solid var(--border);border-radius:15px;transition:opacity .3s ease}
+  .fx-row{display:flex;flex-direction:column;padding:14px;background:var(--panel);border:1px solid var(--border);border-radius:15px;transition:opacity .3s ease}
+  .fx-row-top{display:flex;align-items:center;gap:13px}
   .fx-badge{width:44px;height:44px;flex:none;border-radius:12px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10.5px;font-family:'JetBrains Mono',monospace}
   .fx-info{flex:1;min-width:0}
   .fx-name{font-weight:600;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -85,6 +86,15 @@
   .fx-icon-btn{width:34px;height:34px;flex:none;border:1px solid var(--border);background:transparent;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s ease}
   .fx-icon-btn.copied{background:var(--accent);border-color:var(--accent)}
   .fx-dl{width:34px;height:34px;flex:none;background:var(--accent);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none}
+
+  .fx-cmd{width:100%;display:flex;align-items:center;gap:9px;margin-top:11px;padding:9px 11px;background:var(--field);border:1px solid var(--border);border-radius:11px;cursor:pointer;text-align:left;transition:border-color .15s ease,background .15s ease}
+  .fx-cmd:hover{border-color:var(--accent)}
+  .fx-cmd:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .fx-cmd.copied{border-color:var(--accent);background:var(--drop-bg)}
+  .fx-cmd-prompt{flex:none;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--accent);user-select:none}
+  .fx-cmd-code{flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fx-cmd-label{flex:none;display:inline-flex;align-items:center;gap:5px;font-family:'Inter Tight',sans-serif;font-size:11.5px;font-weight:600;color:var(--sub)}
+  .fx-cmd.copied .fx-cmd-label{color:var(--accent)}
 
   .fx-empty{text-align:center;padding:44px 20px;color:var(--sub)}
   .fx-empty-title{font-size:14px;font-weight:600;color:var(--text)}
@@ -192,6 +202,7 @@
     dark: false,
     expiryIdx: 0,
     copiedId: null,
+    copiedCmdId: null,
     now: Date.now(),
   };
 
@@ -362,7 +373,41 @@
       });
 
       actions.appendChild(copyBtn); actions.appendChild(dl); actions.appendChild(rm);
-      row.appendChild(badgeEl); row.appendChild(info); row.appendChild(pillEl); row.appendChild(actions);
+
+      var top = document.createElement('div');
+      top.className = 'fx-row-top';
+      top.appendChild(badgeEl); top.appendChild(info); top.appendChild(pillEl); top.appendChild(actions);
+
+      var cmdText = 'curl -OJ "' + fileUrl(f) + '"';
+      var cmdCopied = state.copiedCmdId === f.id;
+      var cmd = document.createElement('button');
+      cmd.type = 'button';
+      cmd.className = 'fx-cmd' + (cmdCopied ? ' copied' : '');
+      cmd.title = 'Copy curl command';
+
+      var cmdPrompt = document.createElement('span');
+      cmdPrompt.className = 'fx-cmd-prompt';
+      cmdPrompt.textContent = '$';
+
+      var cmdCode = document.createElement('span');
+      cmdCode.className = 'fx-cmd-code';
+      cmdCode.textContent = cmdText;
+
+      var cmdLabel = document.createElement('span');
+      cmdLabel.className = 'fx-cmd-label';
+      cmdLabel.innerHTML = cmdCopied
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-11"/></svg>Copied'
+        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Copy';
+
+      cmd.appendChild(cmdPrompt); cmd.appendChild(cmdCode); cmd.appendChild(cmdLabel);
+      cmd.addEventListener('click', function () {
+        copyText(cmdText);
+        state.copiedCmdId = f.id;
+        renderList();
+        setTimeout(function () { if (state.copiedCmdId === f.id) { state.copiedCmdId = null; renderList(); } }, 1600);
+      });
+
+      row.appendChild(top); row.appendChild(cmd);
       listEl.appendChild(row);
     });
 
